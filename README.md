@@ -8,7 +8,7 @@ This is a multi-page prototype. Each page is a self-contained, standalone HTML f
 
 - **`index.html`** — The **Kiosk** page (booth attendant view). Entry point. Offers "Register contacts" and "Sortear ganhador" (draw winner).
 - **`Forum Ecommerce Draw.dc.html`** — The **Draw** page. Opened from the kiosk's "Sortear ganhador" button; returns to the kiosk via its back button.
-- **`Forum Ecommerce Mobile.dc.html`** — The **Mobile** page (visitor-facing form). Reached by scanning the kiosk's QR code rather than by in-app navigation.
+- **`mobileform/index.html`** — The **Mobile** page (visitor-facing form), served at **`/mobileform`**. Reached by scanning the kiosk's QR code rather than by in-app navigation.
 
 ### Navigation
 
@@ -17,10 +17,13 @@ index.html  ──(Sortear ganhador)──▶  Forum Ecommerce Draw.dc.html
      ▲                                          │
      └──────────────(‹ back)───────────────────┘
 
-index.html  ──(QR code / formUrl)──▶  Forum Ecommerce Mobile.dc.html
+index.html  ──(QR code / formUrl)──▶  /mobileform  (mobileform/index.html)
 ```
 
-> The kiosk's QR code encodes its `formUrl` (by default an external URL). To send visitors to the bundled mobile form on this site instead, point `formUrl` at `Forum Ecommerce Mobile.dc.html`.
+> The kiosk's QR code encodes its `formUrl`, which points to `/mobileform` on this site
+> (`https://lafinteca.github.io/forum-ecommerce-kiosk/mobileform/`). If you later attach a
+> custom domain so the app is served at the domain root, update `formUrl` to the bare
+> `/mobileform` path.
 
 ## Running locally
 
