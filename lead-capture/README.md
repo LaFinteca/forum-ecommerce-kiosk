@@ -21,9 +21,19 @@ lead as a row in a Google Sheet.
 2. **Extensions ▸ Apps Script**, paste [`Code.gs`](./Code.gs), **Save**.
 3. **Deploy ▸ New deployment ▸ Web app**
    - **Execute as:** Me
-   - **Who has access:** Anyone
+   - **Who has access:** **Anyone** — _not_ "Anyone within `<your domain>`".
 4. Authorize when prompted; copy the **Web app URL** (ends in `/exec`).
 5. Set that URL as the kiosk/mobile `endpointUrl` (wired in the page code).
+
+> **Important — public access.** Booth visitors are not signed into your
+> Google Workspace, so the deployment must be shared with **Anyone**. A
+> domain-restricted deployment has a URL containing `/a/macros/<domain>/`
+> and will silently reject visitor submissions (the form posts with
+> `mode: 'no-cors'` and can't see the rejection). A correct public URL looks
+> like `https://script.google.com/macros/s/AKfyc.../exec` (no `/a/macros/`).
+>
+> If your Workspace admin has disabled sharing Apps Script Web Apps with
+> "Anyone", you'll need them to allow it, or use a different public backend.
 
 ## Retrieving leads captured offline
 
