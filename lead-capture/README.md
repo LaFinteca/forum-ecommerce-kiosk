@@ -1,12 +1,24 @@
-# Lead capture (Google Sheets)
+# Lead capture + winner draw (Google Sheets)
 
 The kiosk (`index.html`) and mobile form (`mobileform/`) collect visitor
 contacts. Every submission is **always** saved to the browser's
 `localStorage` under the key `fecb_leads`, and — when an endpoint is
 configured — also `POST`ed to a backend.
 
-This folder holds the backend: a Google Apps Script Web App that appends each
-lead as a row in a Google Sheet.
+This folder holds the backend: a Google Apps Script Web App that:
+- appends each **lead** as a row in the **Leads** sheet;
+- serves the participant list to the winner-draw screen (`?action=list`, JSONP);
+- appends each **confirmed winner** as a row in the **Winners** sheet.
+
+## Winner draw
+
+The draw screen (`Forum Ecommerce Draw.dc.html`) pulls participants from the
+**Leads** sheet via `GET ?action=list` (JSONP, so it works cross-origin). Staff
+can run as many **test draws** as they like — nothing is saved. Only when they
+press **"Confirmar ganhador final"** is the winner written to the **Winners**
+sheet (`type=winner`, `final=yes`, with the selected `prize`). The prize toggle
+(iPad / AirPods) defaults by date: iPad on Jul 28 2026, AirPods on Jul 29 2026.
+Confirmed winners are excluded from further draws on the same device.
 
 ## Fields sent by the form
 

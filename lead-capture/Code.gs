@@ -1,54 +1,56 @@
 /**
- * FECB lead capture — Google Apps Script Web App
+ * FECB lead capture + winner draw — Google Apps Script Web App
  *
- * Receives the urlencoded POST that the kiosk and mobile form send, and
- * appends one row per lead to a Google Sheet.
+ * Handles three things for the kiosk / mobile form / winner-draw screen:
  *
- * The form posts these fields (see FIELDS below):
- *   timestamp, type, event, source, lang,
- *   name, lastname, company, role, email, telegram, phone
+ *   1. POST (type != 'winner')  → append a lead to the "Leads" sheet.
+ *   2. POST (type == 'winner')  → append a confirmed winner to the "Winners" sheet.
+ *   3. GET  ?action=list        → return the participant list as JSON (or JSONP
+ *                                 when a &callback= is supplied — the draw screen
+ *                                 uses JSONP so it can read the list cross-origin).
  *
- * Setup:
+ * Setup / deploy:
  *   1. Create a Google Sheet (e.g. "FECB Leads").
  *   2. Extensions ▸ Apps Script, paste this file, Save.
  *   3. Deploy ▸ New deployment ▸ type "Web app".
  *        - Execute as: Me
- *        - Who has access: Anyone   ← MUST be "Anyone", NOT "Anyone within <your domain>".
- *          Booth visitors are not signed into your Workspace, so a domain-
- *          restricted deployment rejects their POST and nothing is saved.
- *          A correct "Anyone" deployment has a URL WITHOUT "/a/macros/<domain>/"
- *          in it — it looks like https://script.google.com/macros/s/AKfyc.../exec
- *   4. Authorize when prompted, then copy the Web app URL (ends in /exec).
- *   5. Give that /exec URL to wire into the kiosk/mobile endpointUrl.
+ *        - Who has access: Anyone   ← MUST be "Anyone", NOT "Anyone within <domain>".
+ *   4. Authorize; copy the Web app URL (ends in /exec).
  *
- * Note: the form uses fetch(..., { mode: 'no-cors' }), so it does not read
- * the response — it just needs the endpoint to accept the POST and store it.
+ * IMPORTANT: after editing this code you must publish a NEW VERSION
+ * (Deploy ▸ Manage deployments ▸ ✏️ ▸ Version: New version ▸ Deploy),
+ * otherwise the old code keeps running.
+ *
+ * Writes use fetch(..., { mode: 'no-cors' }); the draw's list read uses JSONP.
  */
 
-// If this script is BOUND to the sheet (created via Extensions ▸ Apps Script),
-// leave SHEET_ID = ''. If it is a STANDALONE script, paste your Sheet's ID here
-// (the long token in the sheet URL: /spreadsheets/d/<THIS>/edit).
+// Bound script (created via the Sheet's Extensions ▸ Apps Script): leave ''.
+// Standalone script: paste the Sheet ID (the /spreadsheets/d/<THIS>/edit token).
 const SHEET_ID = '';
 
-const SHEET_NAME = 'Leads';
-const FIELDS = [
+const LEADS_SHEET = 'Leads';
+const WINNERS_SHEET = 'Winners';
+
+const LEAD_FIELDS = [
   'timestamp', 'type', 'event', 'source', 'lang',
   'name', 'lastname', 'company', 'role', 'email', 'telegram', 'phone',
+];
+const WINNER_FIELDS = [
+  'timestamp', 'prize', 'final', 'event', 'lang',
+  'name', 'lastname', 'company', 'role', 'email',
 ];
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000); // serialize appends so rows never collide
-    const ss = SHEET_ID
-      ? SpreadsheetApp.openById(SHEET_ID)
-      : SpreadsheetApp.getActiveSpreadsheet();
-    if (!ss) throw new Error('No spreadsheet: set SHEET_ID for a standalone script.');
-    let sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
-    if (sheet.getLastRow() === 0) sheet.appendRow(FIELDS); // header row once
     const p = (e && e.parameter) || {};
-    sheet.appendRow(FIELDS.map(function (f) { return p[f] || ''; }));
+    const isWinner = String(p.type || '') === 'winner';
+    const sheetName = isWinner ? WINNERS_SHEET : LEADS_SHEET;
+    const fields = isWinner ? WINNER_FIELDS : LEAD_FIELDS;
+    const sheet = getSheet_(sheetName);
+    if (sheet.getLastRow() === 0) sheet.appendRow(fields); // header row once
+    sheet.appendRow(fields.map(function (f) { return p[f] || ''; }));
     return json({ ok: true });
   } catch (err) {
     return json({ ok: false, error: String(err) });
@@ -57,8 +59,52 @@ function doPost(e) {
   }
 }
 
-function doGet() {
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  if (String(p.action || '') === 'list') {
+    const body = JSON.stringify(getLeads_());
+    if (p.callback) {
+      // JSONP — the draw screen loads this via a <script> tag.
+      return ContentService
+        .createTextOutput(p.callback + '(' + body + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
+  }
   return ContentService.createTextOutput('FECB lead capture is running.');
+}
+
+/** Read the Leads sheet and return participants for the draw. */
+function getLeads_() {
+  const sheet = getSheet_(LEADS_SHEET);
+  if (sheet.getLastRow() < 2) return [];
+  const values = sheet.getDataRange().getValues();
+  const header = values[0];
+  const idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+  const col = function (row, key) { const i = idx[key]; return i == null ? '' : row[i]; };
+  const out = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var name = String(col(row, 'name') || '').trim();
+    if (!name) continue;
+    out.push({
+      name: name,
+      lastname: String(col(row, 'lastname') || ''),
+      company: String(col(row, 'company') || ''),
+      role: String(col(row, 'role') || ''),
+      email: String(col(row, 'email') || ''),
+    });
+  }
+  return out;
+}
+
+function getSheet_(name) {
+  const ss = SHEET_ID
+    ? SpreadsheetApp.openById(SHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('No spreadsheet: set SHEET_ID for a standalone script.');
+  return ss.getSheetByName(name) || ss.insertSheet(name);
 }
 
 function json(obj) {
