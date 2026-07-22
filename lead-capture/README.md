@@ -13,12 +13,18 @@ This folder holds the backend: a Google Apps Script Web App that:
 ## Winner draw
 
 The draw screen (`Forum Ecommerce Draw.dc.html`) pulls participants from the
-**Leads** sheet via `GET ?action=list` (JSONP, so it works cross-origin). Staff
-can run as many **test draws** as they like — nothing is saved. Only when they
-press **"Confirmar ganhador final"** is the winner written to the **Winners**
-sheet (`type=winner`, `final=yes`, with the selected `prize`). The prize toggle
+**Leads** sheet via `GET ?action=list` (JSONP, so it works cross-origin).
+
+Every draw is logged to the **Winners** sheet for a full audit trail:
+- each **draw run** appends a row with `final=no` (a test / non-official spin);
+- pressing **"Confirmar ganhador final"** appends a row with `final=yes` — the
+  actual winner.
+
+So to find the official winner, filter the Winners sheet for **`final = yes`**;
+the `final = no` rows show every spin the team ran. Each row carries the
+selected `prize`, timestamp, and the person's details. The prize toggle
 (iPad / AirPods) defaults by date: iPad on Jul 28 2026, AirPods on Jul 29 2026.
-Confirmed winners are excluded from further draws on the same device.
+Confirmed winners (only) are excluded from further draws on the same device.
 
 ## Fields sent by the form
 
