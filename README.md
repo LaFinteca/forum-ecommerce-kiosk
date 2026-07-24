@@ -8,7 +8,7 @@ This is a multi-page prototype. Each page is a self-contained, standalone HTML f
 
 - **`index.html`** — The **Kiosk** page (booth attendant view). Entry point. Offers "Register contacts" and "Sortear ganhador" (draw winner).
 - **`Forum Ecommerce Draw.dc.html`** — The **Draw** page. Opened from the kiosk's "Sortear ganhador" button; returns to the kiosk via its back button.
-- **`mobileform/index.html`** — The **Mobile** page (visitor-facing form), served at **`/mobileform`**. Reached by scanning the kiosk's QR code rather than by in-app navigation.
+- **`mobileform/index.html`** — The **Mobile** page (phone-sized sign-up form), served at **`/mobileform`**. Reached by scanning the kiosk's QR code, or automatically: opening the main site on a phone redirects here so team members can sign people up from their own phones. iPads/tablets always get the kiosk.
 
 ### Navigation
 
